@@ -4,6 +4,7 @@ import (
 	"crypto/md5"
 	"errors"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/streadway/amqp"
@@ -52,6 +53,19 @@ func (d *AMQPDriver) Dial() error {
 	return nil
 }
 
+func (d *AMQPDriver) reopenChannel() error {
+	if d.channel != nil {
+		d.channel.Close()
+		d.channel = nil
+	}
+	channel, err := d.conn.Channel()
+	if err != nil {
+		return err
+	}
+	d.channel = channel
+	return nil
+}
+
 // Close close this connection
 func (d *AMQPDriver) Close() error {
 	if d.channel != nil {
@@ -64,43 +78,66 @@ func (d *AMQPDriver) Close() error {
 }
 
 // DeclareQueue declare a queue to RabbitMQ server
-func (d *AMQPDriver) DeclareQueue(name string, exclusive bool) (amqp.Queue, error) {
+func (d *AMQPDriver) DeclareQueue(name string, rpc bool) (amqp.Queue, error) {
+	if rpc {
+		return d.channel.QueueDeclare(
+			name,  // name
+			false, // durable
+			false, // delete when unused
+			true,  // exclusive
+			false, // no-wait
+			nil,   // arguments
+		)
+	}
 	return d.channel.QueueDeclare(
-		name,      // name
-		true,      // durable
-		false,     // delete when unused
-		exclusive, // exclusive
-		false,     // no-wait
-		nil,       // arguments
+		name,  // name
+		true,  // durable
+		false, // delete when unused
+		false, // exclusive
+		false, // no-wait
+		nil,   // arguments
 	)
 }
 
 // BindQueueToExchange create exchange and then bind queue to exchange
 func (d *AMQPDriver) BindQueueToExchange() error {
-	err := d.channel.ExchangeDeclare(
-		d.config.ExchangeName, // name
-		"direct",              // type
-		false,                 // durable
-		false,                 // auto-deleted
-		false,                 // internal
-		false,                 // no-wait
-		nil,                   // arguments
-	)
-	if err != nil {
-		return err
+	// If default exchange we do not need to declare it
+	if d.config.ExchangeName != "" {
+		// We don't need to care about error.
+		// If exchange exists code below will run no error
+		// If exchange not created code below will return error
+		err := d.channel.ExchangeDeclarePassive(
+			d.config.ExchangeName, // name
+			"direct",              // type
+			false,                 // durable
+			false,                 // auto-deleted
+			false,                 // internal
+			false,                 // no-wait
+			nil,                   // arguments
+		)
+		if err != nil {
+			log.Println("Declare Exchange Error:", err)
+			if err := d.reopenChannel(); err != nil {
+				return err
+			}
+		}
 	}
 	queue, err := d.DeclareQueue(d.config.NodeName, false)
 	if err != nil {
 		return err
 	}
 	d.queue = queue
-	err = d.channel.QueueBind(
-		queue.Name,            // name
-		queue.Name,            // routing-key
-		d.config.ExchangeName, // exchange
-		false, // no-wait
-		nil,   // arguments
-	)
+	// If default exchange we do not need to bind it
+	if d.config.ExchangeName != "" {
+		err = d.channel.QueueBind(
+			queue.Name,            // name
+			queue.Name,            // routing-key
+			d.config.ExchangeName, // exchange
+			false, // no-wait
+			nil,   // arguments
+		)
+		return err
+	}
 	return nil
 }
 

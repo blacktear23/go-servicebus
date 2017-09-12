@@ -179,11 +179,11 @@ func (r *receiver) Run() {
 				err := r.receiveMessages()
 				if err != nil {
 					r.driver.Close()
-					log.Println(err)
+					log.Println("Receive Message Error:", err)
 				}
 			} else {
 				r.driver.Close()
-				log.Println(err)
+				log.Println("Bind Queue Error:", err)
 			}
 		} else {
 			log.Println(err)
