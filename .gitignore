@@ -1,0 +1,5 @@
+.DS_Store
+*.swph
+*.iml
+.idea/
+*.log
