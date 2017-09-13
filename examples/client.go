@@ -21,9 +21,11 @@ func main() {
 	sender.Send("Add-Service.math.add", []byte("Something to print"))
 	ints := []int{10, 20}
 	data, _ := json.Marshal(&ints)
-	resp, err := sender.Call("Add-Service.math.add", data, 30)
-	if err != nil {
-		fmt.Println(err)
+	for i := 0; i < 1000; i++ {
+		resp, err := sender.Call("Add-Service.math.add", data, 30)
+		if err != nil {
+			fmt.Println(err)
+		}
+		fmt.Println(string(resp))
 	}
-	fmt.Println(string(resp))
 }

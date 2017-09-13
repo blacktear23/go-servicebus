@@ -8,7 +8,13 @@ import (
 	"github.com/blacktear23/go-servicebus/servicebus"
 )
 
-type Calculator struct{}
+type Calculator struct {
+	servicebus.SimpleService
+}
+
+func (*Calculator) IsBackground() bool {
+	return true
+}
 
 func (*Calculator) OnCall(req servicebus.Request, resp servicebus.Response) {
 	fmt.Println("Receive Message:", req.GetMessage())

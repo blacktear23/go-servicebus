@@ -14,7 +14,9 @@ go-servicebus is py-servicebus’s Golang version. You can use golang to write s
 
 import "github.com/blacktear23/go-servicebus/servicebus"
 
-type SomeService struct {}
+type SomeService struct {
+    servicebus.SimpleService
+}
 
 func (s *SomeService) OnMessage(req servicebus.Request) {
     // do process request

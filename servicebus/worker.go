@@ -65,7 +65,11 @@ func (w *worker) processMessage(jobj *job) {
 // Run execute worker's Service related methods
 func (w *worker) Run() {
 	for jobj := range w.queue {
-		w.processMessage(jobj)
+		if w.service.IsBackground() {
+			go w.processMessage(jobj)
+		} else {
+			w.processMessage(jobj)
+		}
 	}
 }
 

@@ -45,6 +45,8 @@ type Response interface {
 
 // Service is a service interface
 type Service interface {
+	// IsBackground if return true it will run service in new goroutine
+	IsBackground() bool
 	// OnMessage when Message received this method will be called
 	OnMessage(req Request)
 	// OnCall when RPC received this method will be called
@@ -52,7 +54,13 @@ type Service interface {
 }
 
 // SimpleService is simple implements for Service interface
-type SimpleService struct{}
+type SimpleService struct {
+	Background bool
+}
+
+func (s *SimpleService) IsBackground() bool {
+	return s.Background
+}
 
 func (s *SimpleService) OnMessage(req Request) {
 	// Do nothing
